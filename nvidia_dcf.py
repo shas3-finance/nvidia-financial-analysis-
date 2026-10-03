@@ -4,19 +4,30 @@
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
-# ==========================================
+# ============================================================
+# NVIDIA FINANCIAL ANALYSIS - DCF
+# ============================================================
+
+# ============================================================
 # LOAD HISTORICAL DATA
-# ==========================================
+# ============================================================
 
 df = pd.read_csv("data/nvidia_financials.csv")
 
 print("\nHistorical Financial Performance")
 print(df)
 
+<<<<<<< HEAD
 # ==========================================
 # HISTORICAL GROWTH & MARGINS
 # ==========================================
+=======
+# ============================================================
+# HISTORICAL RATIOS
+# ============================================================
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 df["Revenue_Growth"] = df["Revenue"].pct_change()
 
@@ -41,25 +52,91 @@ print(
     ].round(4)
 )
 
-# ==========================================
-# FORECAST ASSUMPTIONS
-# ==========================================
+# ============================================================
+# REVENUE FORECAST
+# Uses the same segment assumptions as revenue_forecast.py
+# ============================================================
 
-forecast_years = [
-    2027,
-    2028,
-    2029,
-    2030,
-    2031
-]
+forecast_years = [2027, 2028, 2029, 2030, 2031]
 
-revenue_growth = [
-    0.30,
-    0.22,
-    0.16,
-    0.12,
-    0.08
-]
+historical_revenue = {
+    "Data Center": 193700,
+    "Gaming": 16000,
+    "Professional Visualization": 3200,
+    "Automotive": 2300
+}
+
+growth_assumptions = {
+
+    "Data Center": [
+        0.45,
+        0.30,
+        0.22,
+        0.15,
+        0.10
+    ],
+
+    "Gaming": [
+        0.20,
+        0.15,
+        0.10,
+        0.08,
+        0.06
+    ],
+
+    "Professional Visualization": [
+        0.25,
+        0.20,
+        0.15,
+        0.12,
+        0.10
+    ],
+
+    "Automotive": [
+        0.25,
+        0.25,
+        0.20,
+        0.15,
+        0.12
+    ]
+}
+
+segment_forecast = {}
+
+for segment in historical_revenue:
+
+    revenues = [historical_revenue[segment]]
+
+    previous_revenue = historical_revenue[segment]
+
+    for growth in growth_assumptions[segment]:
+
+        revenue = previous_revenue * (1 + growth)
+
+        revenues.append(revenue)
+
+        previous_revenue = revenue
+
+    segment_forecast[segment] = revenues
+
+revenue_df = pd.DataFrame(
+    segment_forecast,
+    index=["FY2026", "FY2027", "FY2028", "FY2029", "FY2030", "FY2031"]
+)
+
+revenue_df["Total Revenue"] = revenue_df.sum(axis=1)
+
+forecast_revenue = (
+    revenue_df.loc[
+        ["FY2027", "FY2028", "FY2029", "FY2030", "FY2031"],
+        "Total Revenue"
+    ]
+    .values
+)
+
+# ============================================================
+# DCF ASSUMPTIONS
+# ============================================================
 
 operating_margin = [
     0.60,
@@ -70,10 +147,14 @@ operating_margin = [
 ]
 
 tax_rate = 0.18
+
 da_percent_revenue = 0.015
+
 capex_percent_revenue = 0.025
+
 change_nwc_percent_revenue = 0.01
 
+<<<<<<< HEAD
 # ==========================================
 # DCF ASSUMPTIONS
 # ==========================================
@@ -91,20 +172,29 @@ shares_outstanding = 24450
 # ==========================================
 # REVENUE FORECAST
 # ==========================================
+=======
+wacc = 0.1703
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
-last_revenue = df.iloc[-1]["Revenue"]
+terminal_growth = 0.03
 
-forecast_revenue = []
+# $ millions
 
-for growth in revenue_growth:
+cash = 60600
 
-    last_revenue = last_revenue * (1 + growth)
+debt = 10000
 
-    forecast_revenue.append(last_revenue)
+shares_outstanding = 24450
 
+<<<<<<< HEAD
 # ==========================================
 # EBIT
 # ==========================================
+=======
+# ============================================================
+# EBIT
+# ============================================================
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 forecast_ebit = []
 
@@ -117,9 +207,9 @@ for revenue, margin in zip(
 
     forecast_ebit.append(ebit)
 
-# ==========================================
+# ============================================================
 # NOPAT
-# ==========================================
+# ============================================================
 
 forecast_nopat = [
 
@@ -129,9 +219,9 @@ forecast_nopat = [
 
 ]
 
-# ==========================================
+# ============================================================
 # D&A
-# ==========================================
+# ============================================================
 
 forecast_da = [
 
@@ -141,9 +231,9 @@ forecast_da = [
 
 ]
 
-# ==========================================
+# ============================================================
 # CAPEX
-# ==========================================
+# ============================================================
 
 forecast_capex = [
 
@@ -153,9 +243,9 @@ forecast_capex = [
 
 ]
 
-# ==========================================
+# ============================================================
 # CHANGE IN NWC
-# ==========================================
+# ============================================================
 
 forecast_nwc = [
 
@@ -165,9 +255,9 @@ forecast_nwc = [
 
 ]
 
-# ==========================================
+# ============================================================
 # FREE CASH FLOW
-# ==========================================
+# ============================================================
 
 forecast_fcf = []
 
@@ -182,9 +272,15 @@ for nopat, da, capex, nwc in zip(
 
     forecast_fcf.append(fcf)
 
+<<<<<<< HEAD
 # ==========================================
 # DISCOUNT FCF
 # ==========================================
+=======
+# ============================================================
+# DISCOUNT FCF
+# ============================================================
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 discount_periods = np.arange(
     1,
@@ -200,9 +296,15 @@ pv_fcf = (
     * discount_factors
 )
 
+<<<<<<< HEAD
 # ==========================================
 # TERMINAL VALUE
 # ==========================================
+=======
+# ============================================================
+# TERMINAL VALUE
+# ============================================================
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 terminal_fcf = (
     forecast_fcf[-1]
@@ -219,18 +321,30 @@ pv_terminal_value = (
     * discount_factors[-1]
 )
 
+<<<<<<< HEAD
 # ==========================================
 # ENTERPRISE VALUE
 # ==========================================
+=======
+# ============================================================
+# ENTERPRISE VALUE
+# ============================================================
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 enterprise_value = (
     pv_fcf.sum()
     + pv_terminal_value
 )
 
+<<<<<<< HEAD
 # ==========================================
 # EQUITY VALUE
 # ==========================================
+=======
+# ============================================================
+# EQUITY VALUE
+# ============================================================
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 equity_value = (
     enterprise_value
@@ -238,18 +352,30 @@ equity_value = (
     - debt
 )
 
+<<<<<<< HEAD
 # ==========================================
 # IMPLIED SHARE PRICE
 # ==========================================
+=======
+# ============================================================
+# IMPLIED SHARE PRICE
+# ============================================================
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 implied_share_price = (
     equity_value
     / shares_outstanding
 )
 
+<<<<<<< HEAD
 # ==========================================
 # FORECAST TABLE
 # ==========================================
+=======
+# ============================================================
+# FORECAST TABLE
+# ============================================================
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 forecast = pd.DataFrame({
 
@@ -275,14 +401,29 @@ forecast = pd.DataFrame({
 
 print("\nForecast")
 
+<<<<<<< HEAD
 print(forecast.round(2))
+=======
+print(
+    forecast.round(2)
+)
+
+# ============================================================
+# DCF VALUATION
+# ============================================================
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 # ==========================================
 # DCF RESULTS
 # ==========================================
 
 print("\nDCF Valuation")
+<<<<<<< HEAD
 print("--------------------------------")
+=======
+
+print("------------------------------------------")
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)
 
 print(
     f"WACC: {wacc:.2%}"
@@ -338,4 +479,8 @@ print(
     f"${implied_share_price:,.2f}"
 )
 
+<<<<<<< HEAD
 print("--------------------------------")
+=======
+print("------------------------------------------")
+>>>>>>> 4d1762f (Build integrated NVIDIA financial valuation model)

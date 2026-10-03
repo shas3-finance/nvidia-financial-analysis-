@@ -1,13 +1,15 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 
+from assumptions import (
+    HISTORICAL_REVENUE,
+    GROWTH_ASSUMPTIONS
+)
 
-# ============================================================
-# NVIDIA REVENUE FORECAST
-# Historical FY2026 + Forecast FY2027-FY2031
-# $ millions
-# ============================================================
+
+# --------------------------------------------------
+# NVIDIA Revenue Forecast
+# --------------------------------------------------
 
 years = [
     "FY2026",
@@ -19,77 +21,19 @@ years = [
 ]
 
 
-# ------------------------------------------------------------
-# FY2026 historical revenue
-# ------------------------------------------------------------
-
-historical_revenue = {
-    "Data Center": 193700,
-    "Gaming": 16000,
-    "Professional Visualization": 3200,
-    "Automotive": 2300
-}
-
-
-# ------------------------------------------------------------
-# Forecast growth assumptions
-# These are MODEL ASSUMPTIONS, not NVIDIA guidance.
-# ------------------------------------------------------------
-
-growth_assumptions = {
-    "Data Center": [
-        0.45,
-        0.30,
-        0.22,
-        0.15,
-        0.10
-    ],
-
-    "Gaming": [
-        0.20,
-        0.15,
-        0.10,
-        0.08,
-        0.06
-    ],
-
-    "Professional Visualization": [
-        0.25,
-        0.20,
-        0.15,
-        0.12,
-        0.10
-    ],
-
-    "Automotive": [
-        0.25,
-        0.25,
-        0.20,
-        0.15,
-        0.12
-    ]
-}
-
-
-# ------------------------------------------------------------
-# Build forecast
-# ------------------------------------------------------------
-
+# Start forecast with historical revenue
 forecast = {
-    "Data Center": [historical_revenue["Data Center"]],
-    "Gaming": [historical_revenue["Gaming"]],
-    "Professional Visualization": [
-        historical_revenue["Professional Visualization"]
-    ],
-    "Automotive": [historical_revenue["Automotive"]]
+    segment: [revenue]
+    for segment, revenue in HISTORICAL_REVENUE.items()
 }
 
 
+# Apply growth assumptions
 for segment in forecast:
 
     previous_revenue = forecast[segment][0]
 
-    for growth in growth_assumptions[segment]:
+    for growth in GROWTH_ASSUMPTIONS[segment]:
 
         revenue = previous_revenue * (1 + growth)
 
@@ -98,35 +42,24 @@ for segment in forecast:
         previous_revenue = revenue
 
 
-# ------------------------------------------------------------
 # Create DataFrame
-# ------------------------------------------------------------
-
 df = pd.DataFrame(
     forecast,
     index=years
 )
 
 
+# Calculate total revenue
 df["Total Revenue"] = df.sum(axis=1)
 
 
-# ------------------------------------------------------------
-# Calculate segment mix
-# ------------------------------------------------------------
-
-for segment in forecast:
-
-    df[f"{segment} % of Revenue"] = (
-        df[segment] / df["Total Revenue"]
-    )
-
-
-# ------------------------------------------------------------
-# Display forecast
-# ------------------------------------------------------------
+# --------------------------------------------------
+# Display Forecast
+# --------------------------------------------------
 
 print("\nNVIDIA Revenue Forecast")
+print("=" * 80)
+
 print(
     df[
         [
@@ -136,47 +69,77 @@ print(
             "Automotive",
             "Total Revenue"
         ]
-    ].round(0)
+    ].round(2)
 )
 
 
-# ------------------------------------------------------------
-# Calculate total revenue growth
-# ------------------------------------------------------------
+# --------------------------------------------------
+# Revenue Growth
+# --------------------------------------------------
 
-df["Revenue Growth"] = (
-    df["Total Revenue"].pct_change()
-)
+df["Revenue Growth"] = df["Total Revenue"].pct_change()
 
+print("\nRevenue Growth")
+print("=" * 40)
 
-print("\nTotal Revenue Growth")
 print(
-    df["Revenue Growth"].round(4)
+    df["Revenue Growth"]
+    .mul(100)
+    .round(2)
+    .astype(str)
+    + "%"
 )
 
 
-# ------------------------------------------------------------
-# Calculate CAGR
-# ------------------------------------------------------------
+# --------------------------------------------------
+# Revenue CAGR
+# --------------------------------------------------
 
 initial_revenue = df.loc["FY2026", "Total Revenue"]
 final_revenue = df.loc["FY2031", "Total Revenue"]
 
 cagr = (
-    (final_revenue / initial_revenue)
-    ** (1 / 5)
-    - 1
-)
+    (final_revenue / initial_revenue) ** (1 / 5)
+) - 1
+
+print("\nRevenue CAGR")
+print("=" * 40)
+
+print(f"FY2026-FY2031 CAGR: {cagr:.2%}")
+
+
+# --------------------------------------------------
+# Revenue Mix
+# --------------------------------------------------
+
+print("\nRevenue Mix")
+print("=" * 80)
+
+for segment in HISTORICAL_REVENUE:
+
+    df[f"{segment} % of Revenue"] = (
+        df[segment] / df["Total Revenue"]
+    )
 
 print(
-    f"\nFY2026-FY2031 Revenue CAGR: "
-    f"{cagr:.2%}"
+    df[
+        [
+            "Data Center",
+            "Gaming",
+            "Professional Visualization",
+            "Automotive"
+        ]
+    ].div(df["Total Revenue"], axis=0)
+    .mul(100)
+    .round(2)
+    .astype(str)
+    + "%"
 )
 
 
-# ------------------------------------------------------------
-# Revenue chart
-# ------------------------------------------------------------
+# --------------------------------------------------
+# Revenue Forecast Chart
+# --------------------------------------------------
 
 df[
     [
@@ -191,9 +154,11 @@ df[
     figsize=(10, 6)
 )
 
-plt.title("NVIDIA Revenue Forecast by Market Platform")
-plt.ylabel("Revenue ($ millions)")
+plt.title("NVIDIA Revenue Forecast by Segment")
 plt.xlabel("Fiscal Year")
+plt.ylabel("Revenue ($ millions)")
 plt.tight_layout()
 
-plt.show()
+plt.savefig("revenue_forecast.png", dpi=300, bbox_inches="tight")
+plt.close()
+print("\nChart saved as revenue_forecast.png")

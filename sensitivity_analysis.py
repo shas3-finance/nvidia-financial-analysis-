@@ -1,240 +1,214 @@
-"""
-NVIDIA Financial Analysis
-DCF Sensitivity Analysis
-
-This script calculates implied equity value per share
-under different WACC and terminal growth assumptions.
-"""
-
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
-
-# ============================================================
-# MODEL INPUTS
-# ============================================================
-
-# Forecast free cash flow ($ millions)
-# Replace these with the FCF figures produced by your DCF model.
-forecast_fcf = {
-    2027: 105000,
-    2028: 130000,
-    2029: 155000,
-    2030: 175000,
-    2031: 190000
-}
-
-# Base assumptions
-base_wacc = 0.08
-base_terminal_growth = 0.03
-
-# NVIDIA balance sheet assumptions ($ millions)
-cash = 60600
-debt = 10000
-
-# Diluted shares outstanding (millions)
-shares_outstanding = 24500
+from assumptions import (
+    WACC,
+    TERMINAL_GROWTH_RATE,
+    CASH,
+    DEBT,
+    SHARES_OUTSTANDING
+)
 
 
-# ============================================================
-# DCF FUNCTION
-# ============================================================
+# --------------------------------------------------
+# NVIDIA DCF Sensitivity Analysis
+# --------------------------------------------------
 
-def calculate_dcf_value(
-    fcf,
-    wacc,
-    terminal_growth,
-    cash,
-    debt,
-    shares
-):
-    """
-    Calculate enterprise value, equity value
-    and implied value per share.
-    """
+# Forecast Free Cash Flow ($ millions)
+forecast_fcf = np.array([
+    144875.68,
+    189966.28,
+    234223.16,
+    272952.46,
+    299775.91
+])
 
-    years = list(fcf.keys())
-    fcf_values = list(fcf.values())
 
-    # Discount forecast FCF
+# Sensitivity ranges
+wacc_values = [
+    0.15,
+    0.16,
+    WACC,
+    0.18,
+    0.19
+]
+
+terminal_growth_values = [
+    0.02,
+    0.025,
+    TERMINAL_GROWTH_RATE,
+    0.035,
+    0.04
+]
+
+
+def calculate_share_price(wacc, terminal_growth):
+
+    # Present value of forecast FCF
     pv_fcf = 0
 
-    for i, cash_flow in enumerate(fcf_values, start=1):
-        pv_fcf += cash_flow / ((1 + wacc) ** i)
+    for year, fcf in enumerate(forecast_fcf, start=1):
+
+        pv_fcf += (
+            fcf / ((1 + wacc) ** year)
+        )
 
     # Terminal value
-    terminal_fcf = fcf_values[-1] * (1 + terminal_growth)
+    terminal_fcf = (
+        forecast_fcf[-1]
+        * (1 + terminal_growth)
+    )
 
     terminal_value = (
-        terminal_fcf /
-        (wacc - terminal_growth)
+        terminal_fcf
+        / (wacc - terminal_growth)
     )
 
     # Present value of terminal value
     pv_terminal_value = (
-        terminal_value /
-        ((1 + wacc) ** len(fcf_values))
+        terminal_value
+        / ((1 + wacc) ** 5)
     )
 
     # Enterprise value
-    enterprise_value = pv_fcf + pv_terminal_value
+    enterprise_value = (
+        pv_fcf
+        + pv_terminal_value
+    )
 
     # Equity value
-    equity_value = enterprise_value + cash - debt
+    equity_value = (
+        enterprise_value
+        + CASH
+        - DEBT
+    )
 
     # Implied share price
-    implied_share_price = equity_value / shares
+    share_price = (
+        equity_value
+        / SHARES_OUTSTANDING
+    )
 
-    return {
-        "PV of FCF": pv_fcf,
-        "PV of Terminal Value": pv_terminal_value,
-        "Enterprise Value": enterprise_value,
-        "Equity Value": equity_value,
-        "Implied Share Price": implied_share_price
-    }
+    return share_price
 
 
-# ============================================================
-# SENSITIVITY TABLE
-# ============================================================
+# --------------------------------------------------
+# Print Sensitivity Table
+# --------------------------------------------------
 
-wacc_values = np.arange(0.07, 0.1001, 0.005)
+print("\nNVIDIA DCF Sensitivity Analysis")
+print("=" * 75)
 
-terminal_growth_values = np.arange(
-    0.02,
-    0.045,
-    0.005
-)
+print("\nImplied Share Price ($)")
+print("Terminal Growth →")
 
-sensitivity_table = pd.DataFrame(
-    index=[
-        f"{wacc:.1%}"
-        for wacc in wacc_values
-    ],
-    columns=[
-        f"{growth:.1%}"
-        for growth in terminal_growth_values
-    ]
-)
+header = "WACC       "
+
+for growth in terminal_growth_values:
+    header += f"{growth:.2%}       "
+
+print(header)
+print("-" * 75)
 
 
 for wacc in wacc_values:
 
+    row = f"{wacc:.2%}     "
+
     for growth in terminal_growth_values:
 
-        # Terminal growth must be below WACC
-        if growth >= wacc:
-            value = np.nan
+        price = calculate_share_price(
+            wacc,
+            growth
+        )
 
-        else:
+        row += f"${price:,.2f}     "
 
-            result = calculate_dcf_value(
-                forecast_fcf,
-                wacc,
-                growth,
-                cash,
-                debt,
-                shares_outstanding
-            )
-
-            value = result["Implied Share Price"]
-
-        sensitivity_table.loc[
-            f"{wacc:.1%}",
-            f"{growth:.1%}"
-        ] = value
+    print(row)
 
 
-# ============================================================
-# DISPLAY RESULTS
-# ============================================================
+# --------------------------------------------------
+# Central Case
+# --------------------------------------------------
 
-print("\nNVIDIA DCF SENSITIVITY ANALYSIS")
-print("=" * 60)
+central_price = calculate_share_price(
+    WACC,
+    TERMINAL_GROWTH_RATE
+)
 
-print("\nImplied Value Per Share ($):\n")
+print("\nCentral Case")
+print("-" * 35)
+
+print(f"WACC: {WACC:.2%}")
+print(
+    f"Terminal Growth: "
+    f"{TERMINAL_GROWTH_RATE:.2%}"
+)
 
 print(
-    sensitivity_table.astype(float).round(2)
+    f"Implied Share Price: "
+    f"${central_price:,.2f}"
+)
+# --------------------------------------------------
+# Sensitivity Heatmap
+# --------------------------------------------------
+
+sensitivity_matrix = np.zeros(
+    (
+        len(terminal_growth_values),
+        len(wacc_values)
+    )
 )
 
+for i, growth in enumerate(terminal_growth_values):
 
-# ============================================================
-# SAVE RESULTS
-# ============================================================
+    for j, wacc in enumerate(wacc_values):
 
-sensitivity_table.to_csv(
-    "charts/dcf_sensitivity_table.csv"
-)
-
-print("\nSensitivity table saved to:")
-print("charts/dcf_sensitivity_table.csv")
+        sensitivity_matrix[i, j] = calculate_share_price(
+            wacc,
+            growth
+        )
 
 
-# ============================================================
-# CREATE HEATMAP
-# ============================================================
+plt.figure(figsize=(10, 6))
 
-fig, ax = plt.subplots(figsize=(10, 7))
-
-data = sensitivity_table.astype(float).values
-
-im = ax.imshow(
-    data,
+plt.imshow(
+    sensitivity_matrix,
     aspect="auto"
 )
 
-ax.set_xticks(
-    range(len(terminal_growth_values))
+plt.colorbar(
+    label="Implied Share Price ($)"
 )
 
-ax.set_xticklabels(
-    [f"{x:.1%}" for x in terminal_growth_values]
+plt.xticks(
+    range(len(wacc_values)),
+    [f"{w:.2%}" for w in wacc_values]
 )
 
-ax.set_yticks(
-    range(len(wacc_values))
+plt.yticks(
+    range(len(terminal_growth_values)),
+    [f"{g:.2%}" for g in terminal_growth_values]
 )
 
-ax.set_yticklabels(
-    [f"{x:.1%}" for x in wacc_values]
-)
+plt.xlabel("WACC")
+plt.ylabel("Terminal Growth Rate")
 
-ax.set_xlabel("Terminal Growth Rate")
-ax.set_ylabel("WACC")
-
-ax.set_title(
+plt.title(
     "NVIDIA DCF Sensitivity Analysis"
-)
-
-# Add values to cells
-for i in range(data.shape[0]):
-
-    for j in range(data.shape[1]):
-
-        if not np.isnan(data[i, j]):
-
-            ax.text(
-                j,
-                i,
-                f"${data[i, j]:,.0f}",
-                ha="center",
-                va="center"
-            )
-
-fig.colorbar(
-    im,
-    ax=ax,
-    label="Implied Value Per Share ($)"
 )
 
 plt.tight_layout()
 
 plt.savefig(
-    "charts/dcf_sensitivity.png",
+    "sensitivity_analysis.png",
     dpi=300,
     bbox_inches="tight"
 )
 
-plt.show()
+plt.close()
+
+print(
+    "\nSensitivity chart saved as "
+    "sensitivity_analysis.png"
+)
