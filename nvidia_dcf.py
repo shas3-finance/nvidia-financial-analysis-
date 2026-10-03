@@ -1,18 +1,21 @@
+# ==========================================
+# NVIDIA FINANCIAL ANALYSIS - DCF
+# ==========================================
+
 import pandas as pd
 import numpy as np
 
 # ==========================================
-# NVIDIA FINANCIAL ANALYSIS
+# LOAD HISTORICAL DATA
 # ==========================================
 
-# Load historical financial data
 df = pd.read_csv("data/nvidia_financials.csv")
 
 print("\nHistorical Financial Performance")
 print(df)
 
 # ==========================================
-# HISTORICAL GROWTH
+# HISTORICAL GROWTH & MARGINS
 # ==========================================
 
 df["Revenue_Growth"] = df["Revenue"].pct_change()
@@ -26,6 +29,7 @@ df["Net_Margin"] = (
 )
 
 print("\nFinancial Ratios")
+
 print(
     df[
         [
@@ -71,6 +75,20 @@ capex_percent_revenue = 0.025
 change_nwc_percent_revenue = 0.01
 
 # ==========================================
+# DCF ASSUMPTIONS
+# ==========================================
+
+wacc = 0.09
+terminal_growth = 0.03
+
+# NVIDIA balance sheet / share assumptions
+# Values are in $ millions except shares
+
+cash = 60600
+debt = 10000
+shares_outstanding = 24450
+
+# ==========================================
 # REVENUE FORECAST
 # ==========================================
 
@@ -85,7 +103,7 @@ for growth in revenue_growth:
     forecast_revenue.append(last_revenue)
 
 # ==========================================
-# OPERATING PROFIT
+# EBIT
 # ==========================================
 
 forecast_ebit = []
@@ -104,8 +122,11 @@ for revenue, margin in zip(
 # ==========================================
 
 forecast_nopat = [
+
     ebit * (1 - tax_rate)
+
     for ebit in forecast_ebit
+
 ]
 
 # ==========================================
@@ -113,8 +134,11 @@ forecast_nopat = [
 # ==========================================
 
 forecast_da = [
+
     revenue * da_percent_revenue
+
     for revenue in forecast_revenue
+
 ]
 
 # ==========================================
@@ -122,8 +146,11 @@ forecast_da = [
 # ==========================================
 
 forecast_capex = [
+
     revenue * capex_percent_revenue
+
     for revenue in forecast_revenue
+
 ]
 
 # ==========================================
@@ -131,8 +158,11 @@ forecast_capex = [
 # ==========================================
 
 forecast_nwc = [
+
     revenue * change_nwc_percent_revenue
+
     for revenue in forecast_revenue
+
 ]
 
 # ==========================================
@@ -153,11 +183,8 @@ for nopat, da, capex, nwc in zip(
     forecast_fcf.append(fcf)
 
 # ==========================================
-# DCF
+# DISCOUNT FCF
 # ==========================================
-
-wacc = 0.09
-terminal_growth = 0.03
 
 discount_periods = np.arange(
     1,
@@ -173,7 +200,9 @@ pv_fcf = (
     * discount_factors
 )
 
-# Terminal value
+# ==========================================
+# TERMINAL VALUE
+# ==========================================
 
 terminal_fcf = (
     forecast_fcf[-1]
@@ -190,34 +219,83 @@ pv_terminal_value = (
     * discount_factors[-1]
 )
 
+# ==========================================
+# ENTERPRISE VALUE
+# ==========================================
+
 enterprise_value = (
     pv_fcf.sum()
     + pv_terminal_value
 )
 
 # ==========================================
-# RESULTS
+# EQUITY VALUE
+# ==========================================
+
+equity_value = (
+    enterprise_value
+    + cash
+    - debt
+)
+
+# ==========================================
+# IMPLIED SHARE PRICE
+# ==========================================
+
+implied_share_price = (
+    equity_value
+    / shares_outstanding
+)
+
+# ==========================================
+# FORECAST TABLE
 # ==========================================
 
 forecast = pd.DataFrame({
+
     "Year": forecast_years,
+
     "Revenue": forecast_revenue,
+
     "EBIT": forecast_ebit,
+
     "NOPAT": forecast_nopat,
+
     "D&A": forecast_da,
+
     "Capex": forecast_capex,
+
     "Change_NWC": forecast_nwc,
+
     "FCF": forecast_fcf,
+
     "PV_FCF": pv_fcf
+
 })
 
 print("\nForecast")
+
 print(forecast.round(2))
 
+# ==========================================
+# DCF RESULTS
+# ==========================================
+
 print("\nDCF Valuation")
+print("--------------------------------")
+
 print(
-    f"Enterprise Value: "
-    f"${enterprise_value:,.0f} million"
+    f"WACC: {wacc:.2%}"
+)
+
+print(
+    f"Terminal Growth Rate: "
+    f"{terminal_growth:.2%}"
+)
+
+print(
+    f"PV of Forecast FCF: "
+    f"${pv_fcf.sum():,.0f} million"
 )
 
 print(
@@ -229,3 +307,35 @@ print(
     f"PV of Terminal Value: "
     f"${pv_terminal_value:,.0f} million"
 )
+
+print(
+    f"Enterprise Value: "
+    f"${enterprise_value:,.0f} million"
+)
+
+print(
+    f"Cash: "
+    f"${cash:,.0f} million"
+)
+
+print(
+    f"Debt: "
+    f"${debt:,.0f} million"
+)
+
+print(
+    f"Equity Value: "
+    f"${equity_value:,.0f} million"
+)
+
+print(
+    f"Shares Outstanding: "
+    f"{shares_outstanding:,.0f} million"
+)
+
+print(
+    f"\nImplied Share Price: "
+    f"${implied_share_price:,.2f}"
+)
+
+print("--------------------------------")
